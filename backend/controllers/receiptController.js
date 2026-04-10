@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { parseReceipt } = require('../services/geminiService');
+const { parseReceipt } = require('../services/geminiServices.js');
 
 async function uploadReceipt(req, res) {
   const filePath = req.file && req.file.path;

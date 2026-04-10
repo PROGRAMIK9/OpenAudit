@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { ResponsesClient } = require('@google/generative-ai');
+const { GoogleGenAI } = require("@google/genai");
 
 const MODEL_ENV_VAR = 'GEMINI_MODEL';
 const ALLOWED_CATEGORIES = new Set(['food', 'travel', 'office', 'medical', 'utilities', 'entertainment', 'other']);
@@ -235,29 +235,32 @@ async function parseReceipt(filePath) {
 
 Analyze the attached receipt image or PDF and return ONLY the JSON object.`;
 
-  const client = new ResponsesClient();
-  let apiResponse;
-  try {
-    apiResponse = await client.responses.create({
-      model: modelName,
-      input: {
-        text: prompt,
-        image: {
-          inlineData: {
-            data: base64,
-            mimeType,
-          },
-        },
-      },
-    });
-  } catch (err) {
-    const message = `Gemini API request failed: ${err.message || err}`;
-    throw new Error(message);
-  }
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    apiVersion: "v1"   // 🔥 THIS FIXES EVERYTHING
+  });
 
-  const responseText = extractTextFromResponse(apiResponse);
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-lite",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              data: base64,
+              mimeType,
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const responseText = response.text;
   const parsed = parseJsonSafely(responseText);
-  return assertReceiptShape(parsed);
+    return assertReceiptShape(parsed);
 }
 
 async function runReceiptParseTest() {
