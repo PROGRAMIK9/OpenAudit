@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Verify token and get user
-      axios.get('http://localhost:3000/api/auth/profile')
+      axios.get('http://localhost:5000/api/auth/profile')
         .then(response => {
           setUser(response.data);
         })
@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post('http://localhost:3000/api/auth/login', { email, password });
+    const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
     const { user, token } = response.data;
     setUser(user);
     localStorage.setItem('token', token);
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const response = await axios.post('http://localhost:3000/api/auth/register', { name, email, password });
+    const response = await axios.post('http://localhost:5000/api/auth/register', { name, email, password });
     const { user, token } = response.data;
     setUser(user);
     localStorage.setItem('token', token);

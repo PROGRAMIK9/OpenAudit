@@ -1,4 +1,60 @@
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
 const db = require('../config/db');
+const { sendWhatsAppPDF } = require('../services/twilioService');
+
+const ensureDirectory = (dirPath) => {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+};
+
+const savePdfBase64 = (base64Data, filePath) => {
+    const cleaned = base64Data.replace(/^data:application\/pdf;base64,/, '').trim();
+    const buffer = Buffer.from(cleaned, 'base64');
+    if (!buffer || buffer.length === 0 || buffer.slice(0, 5).toString() !== '%PDF-') {
+        throw new Error('Invalid PDF file data.');
+    }
+    fs.writeFileSync(filePath, buffer);
+};
+
+const validatePhoneNumber = (value) => {
+    if (typeof value !== 'string') {
+        throw new Error('phoneNumber must be a string in the format +91XXXXXXXXXX.');
+    }
+    const normalized = value.trim();
+    if (!/^\+91\d{10}$/.test(normalized)) {
+        throw new Error('phoneNumber must be in the format +91XXXXXXXXXX.');
+    }
+    return normalized;
+};
+
+const validatePublicPdfUrl = async (pdfUrl) => {
+    if (typeof pdfUrl !== 'string' || pdfUrl.trim() === '') {
+        throw new Error('pdfUrl is required and must be a public URL.');
+    }
+    let parsed;
+    try {
+        parsed = new URL(pdfUrl);
+    } catch (err) {
+        throw new Error('pdfUrl must be a valid public URL.');
+    }
+    if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+        throw new Error('pdfUrl must use http or https protocol.');
+    }
+
+    try {
+        const response = await axios.head(pdfUrl, { timeout: 5000 });
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error('PDF URL did not return a successful HTTP response.');
+        }
+    } catch (err) {
+        throw new Error('Unable to verify pdfUrl. Ensure the file is publicly accessible.');
+    }
+    return pdfUrl;
+};
+
 exports.calculateTax = async (req, res) => {
     console.log(req.body);
     const { annualIncome = 0, investments = 0, otherDeductions = 0, rentPaid = 0 } = req.body;
@@ -103,6 +159,51 @@ exports.calculateTax = async (req, res) => {
 
     } catch (err) {
         res.status(500).send("Calculation Error");
+    }
+};
+
+exports.sendTaxReport = async (req, res) => {
+    let publicPdfUrl = null;
+
+    try {
+        const { phoneNumber, pdfUrl, pdfBase64 } = req.body;
+        const validatedPhone = validatePhoneNumber(phoneNumber);
+
+        if (pdfBase64) {
+            const reportsDir = path.join(__dirname, '..', 'uploads', 'reports');
+            ensureDirectory(reportsDir);
+
+            const fileName = `tax_report_${Date.now()}.pdf`;
+            const targetPath = path.join(reportsDir, fileName);
+            savePdfBase64(pdfBase64, targetPath);
+            publicPdfUrl = `${req.protocol}://${req.get('host')}/uploads/reports/${fileName}`;
+            console.log(`PDF generated and stored at ${publicPdfUrl}`);
+        } else if (pdfUrl) {
+            publicPdfUrl = await validatePublicPdfUrl(pdfUrl);
+            console.log(`Verified public PDF URL: ${publicPdfUrl}`);
+        } else {
+            return res.status(400).json({ success: false, error: 'Either pdfUrl or pdfBase64 must be provided.' });
+        }
+
+        const response = await sendWhatsAppPDF(validatedPhone, publicPdfUrl);
+        console.log(`WhatsApp PDF sent with SID=${response.sid}`);
+
+        return res.json({
+            success: true,
+            pdfUrl: publicPdfUrl,
+            whatsappSent: true
+        });
+    } catch (error) {
+        console.error('sendTaxReport error:', error?.message || error);
+        if (publicPdfUrl) {
+            return res.json({
+                success: true,
+                pdfUrl: publicPdfUrl,
+                whatsappSent: false,
+                error: error.message
+            });
+        }
+        return res.status(400).json({ success: false, error: error.message });
     }
 };
 

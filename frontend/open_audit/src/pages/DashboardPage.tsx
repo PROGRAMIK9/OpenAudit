@@ -16,7 +16,7 @@ function DashboardPage() {
 
   const fetchReceipts = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/receipts');
+      const response = await axios.get('http://localhost:5000/api/receipts');
       const receiptsData = Array.isArray(response.data)
         ? response.data
         : response.data?.receipts || [];
