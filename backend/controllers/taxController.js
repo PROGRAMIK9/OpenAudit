@@ -138,9 +138,9 @@ exports.calculateTax = async (req, res) => {
         const savings = Math.abs(oldTax - newTax);
         const recommendation = oldTax < newTax ? "Old Regime" : "New Regime";
         const newRecord = await db.query(
-            `INSERT INTO transactions (user_id, financial_year, annualIncome, investments_80c, rent_paid, calculated_old_tax, calculated_new_tax, final_tax, savings, recommendation) 
-             VALUES ($1, '2025-2026', $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [req.user.id, income, inv80c, rent, oldTax, newTax, finalTax, savings, recommendation]
+            `INSERT INTO transactions (user_id, financial_year, annualIncome, investments_80c, rent_paid, other_deductions, standard_deduction, hra_exemption, calculated_old_tax, calculated_new_tax, final_tax, savings, recommendation) 
+             VALUES ($1, '2025-2026', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+            [req.user.id, income, inv80c, rent, other, standardDeductionOld, hraExemption, oldTax, newTax, finalTax, savings, recommendation]
         );
         // --- 5. SEND RESULT ---
         res.json({
