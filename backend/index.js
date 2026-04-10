@@ -1,9 +1,20 @@
+require('dotenv').config({ path: __dirname + '/.env' });
+
+console.log("ENV CHECK:", {
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+});
+
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.error("Missing Cloudinary environment variables");
+    process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -139,9 +139,17 @@ async function sendWhatsAppPDF(recipientNumber, pdfUrl, body = 'Your tax report 
   return sendWhatsAppMessage({ recipientNumber, body, pdfUrl });
 }
 
+async function sendWhatsAppMedia(recipientNumber, body, mediaUrl) {
+  if (!mediaUrl || typeof mediaUrl !== 'string') {
+    throw new Error('A valid mediaUrl is required to send WhatsApp media.');
+  }
+  return sendWhatsAppMessage({ recipientNumber, body, pdfUrl: mediaUrl });
+}
+
 module.exports = {
   sendWhatsAppMessage,
   sendWhatsAppPDF,
+  sendWhatsAppMedia,
   validateRecipientNumber,
   validatePdfUrl,
   ensureTwilioConfig

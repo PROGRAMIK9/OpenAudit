@@ -1,6 +1,5 @@
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-require('dotenv').config();
 
 // 1. Configure Cloudinary with keys from .env
 cloudinary.config({
